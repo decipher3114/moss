@@ -75,6 +75,8 @@ export default function MossDemo() {
 
   const [isBuilding, startBuild] = useTransition();
   const [isSearching, startSearch] = useTransition();
+  const [isDeletingIndex, startDeleteIndex] = useTransition();
+  const isMutatingIndex = isBuilding || isDeletingIndex;
 
   // ── Document operations ────────────────────────────────────────────────────
 
@@ -154,6 +156,28 @@ export default function MossDemo() {
     });
   };
 
+  const deleteIndex = () => {
+    if (!client || isDeletingIndex || isLoadingIndex || buildState !== 'done') return;
+
+    setBuildMessage(null);
+
+    startDeleteIndex(async () => {
+      try {
+        await client.deleteIndex(indexName);
+        setBuildState('idle');
+        setIsIndexLoaded(false);
+        setSearchResults(null);
+        setSearchError(null);
+        setSearchQuery('');
+        setHasSearched(false);
+        setModifiedIds(new Set(docs.filter(d => d.text.trim()).map(d => d.id)));
+      } catch (error) {
+        setBuildState('done');
+        setBuildMessage(error instanceof Error ? error.message : 'Failed to delete index');
+      }
+    });
+  };
+
   // ── Search ─────────────────────────────────────────────────────────────────
 
   const runSearch = (query: string) => {
@@ -207,6 +231,9 @@ export default function MossDemo() {
 
   const validDocCount = docs.filter(d => d.text.trim()).length;
   const hasModified = modifiedIds.size > 0;
+  const searchTimeMs = typeof searchResults?.timeTakenMs === 'number'
+    ? searchResults.timeTakenMs
+    : null;
 
   return (
     <main>
@@ -321,7 +348,7 @@ export default function MossDemo() {
                 <button
                   className="btn add-btn"
                   onClick={addNewDoc}
-                  disabled={isBuilding}
+                  disabled={isMutatingIndex}
                   title="Add new document"
                 >
                   <Plus size={14} /> Add
@@ -348,7 +375,7 @@ export default function MossDemo() {
                         <button
                           className="btn-icon update"
                           onClick={() => buildIndex(doc.id)}
-                          disabled={isBuilding || !doc.text.trim()}
+                          disabled={isMutatingIndex || !doc.text.trim()}
                           title="Update this document"
                         >
                           <Upload size={14} />
@@ -357,7 +384,7 @@ export default function MossDemo() {
                       <button
                         className="btn-icon"
                         onClick={() => removeDoc(doc.id)}
-                        disabled={isBuilding}
+                        disabled={isMutatingIndex}
                         title="Remove document"
                       >
                         <Trash2 size={14} />
@@ -380,21 +407,21 @@ export default function MossDemo() {
               <button
                 className="btn btn-primary build-button"
                 onClick={() => buildIndex()}
-                disabled={isBuilding || validDocCount === 0 || !hasModified}
+                disabled={isMutatingIndex || validDocCount === 0 || !hasModified}
               >
                 {isBuilding && <Loader2 className="spinner" size={16} />}
                 {!isBuilding && <Database size={16} />}
                 <span>{buildState === 'done' ? 'Rebuild' : 'Build'} Index</span>
               </button>
 
-              {buildState === 'error' && buildMessage && (
+              {buildMessage && buildState !== 'building' && (
                 <div className="status-box status-error">
                   <AlertCircle size={14} />
                   <span>{buildMessage}</span>
                 </div>
               )}
 
-              {buildState === 'done' && (
+              {buildState === 'done' && !buildMessage && (
                 <div className="status-box status-success" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: '0.2rem' }}>
                   <span style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
                     <CheckCircle2 size={14} />
@@ -403,6 +430,25 @@ export default function MossDemo() {
                   <span style={{ fontSize: '0.72rem', opacity: 0.6, fontFamily: 'monospace' }}>{indexName}</span>
                 </div>
               )}
+
+              <button
+                className="btn btn-danger-soft"
+                onClick={deleteIndex}
+                disabled={isMutatingIndex || isLoadingIndex || buildState !== 'done'}
+                style={{ width: '100%', marginTop: '0.75rem' }}
+              >
+                {isDeletingIndex ? (
+                  <>
+                    <Loader2 className="spinner" size={14} />
+                    Deleting Index
+                  </>
+                ) : (
+                  <>
+                    <Trash2 size={14} />
+                    Delete Index
+                  </>
+                )}
+              </button>
             </div>
           </section>
 
@@ -413,7 +459,7 @@ export default function MossDemo() {
               <button
                 className="btn btn-secondary"
                 onClick={loadIndexIntoMemory}
-                disabled={isIndexLoaded || isLoadingIndex || !buildState || buildState !== 'done'}
+                disabled={isMutatingIndex || isIndexLoaded || isLoadingIndex || !buildState || buildState !== 'done'}
                 style={{ width: '100%' }}
               >
                 {isIndexLoaded ? (
@@ -497,6 +543,14 @@ export default function MossDemo() {
                 <div className="status-box status-error" style={{ marginBottom: '1rem' }}>
                   <AlertCircle size={14} />
                   {searchError}
+                </div>
+              )}
+
+              {!isSearching && hasSearched && searchResults && !searchError && (
+                <div className="results-summary">
+                  {searchTimeMs !== null && (
+                    <span>Retrieval time {searchTimeMs.toFixed(1)} ms</span>
+                  )}
                 </div>
               )}
 
