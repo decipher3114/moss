@@ -6,11 +6,11 @@ from dataclasses import dataclass, field
 from typing import Any
 from unittest.mock import MagicMock, patch
 
-import pytest  # noqa: F401
+import pytest
 
 pytest.importorskip("notion_client")
 
-from moss import DocumentInfo  # noqa: F401
+from moss import DocumentInfo
 from moss_connector_notion import NotionConnector, ingest
 
 
