@@ -89,7 +89,7 @@ class NotionConnector:
                 break
 
             for page in pages:
-                page: dict[Any | str, Any | list[dict[str, Any]]] = {
+                page = {
                     **page,
                     "content": self._fetch_blocks(
                         client,
