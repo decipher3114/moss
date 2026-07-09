@@ -1,4 +1,4 @@
-"""Template unit test. Rename to test_<source>.py and adapt."""
+"""Unit tests for moss-connector-notion."""
 
 from __future__ import annotations
 

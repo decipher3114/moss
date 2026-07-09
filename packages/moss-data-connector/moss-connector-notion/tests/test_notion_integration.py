@@ -1,3 +1,5 @@
+"""Integration test for moss-connector-notion."""
+
 from __future__ import annotations
 
 import os
