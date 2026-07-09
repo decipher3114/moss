@@ -34,10 +34,10 @@ class NotionConnector:
         cursor = None
 
         while True:
-            response = client.blocks.children.list(
-                block_id=block_id,
-                start_cursor=cursor,
-            )
+            kwargs: dict[str, Any] = {"block_id": block_id}
+            if cursor is not None:
+                kwargs["start_cursor"] = cursor
+            response = client.blocks.children.list(**kwargs)
 
             blocks = response["results"] or []
 
