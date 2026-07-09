@@ -286,7 +286,7 @@ async def test_block_pagination():
     second = fake_client.blocks.children.list.call_args_list[1]
 
     assert first.kwargs["block_id"] == "page1"
-    assert first.kwargs["start_cursor"] is None
+    assert "start_cursor" not in first.kwargs
     assert second.kwargs["start_cursor"] == "cursor1"
 
 
